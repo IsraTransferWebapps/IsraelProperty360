@@ -47,17 +47,25 @@ export const AuthProvider = ({ children }) => {
     },
 
     redirectToLogin: async (returnUrl) => {
-      await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: returnUrl || window.location.href },
-      });
+      if (returnUrl) sessionStorage.setItem('auth_return_url', returnUrl);
+      window.location.href = '/Login';
     },
 
     loginWithRedirect: async (returnUrl) => {
-      await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: returnUrl || window.location.href },
-      });
+      if (returnUrl) sessionStorage.setItem('auth_return_url', returnUrl);
+      window.location.href = '/Login';
+    },
+
+    signUp: async ({ email, password }) => {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) throw error;
+      return data;
+    },
+
+    signIn: async ({ email, password }) => {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      return data;
     },
 
     logout: async (redirectUrl) => {
@@ -122,10 +130,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = () => {
-    supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.href },
-    });
+    sessionStorage.setItem('auth_return_url', window.location.href);
+    window.location.href = '/Login';
   };
 
   return (
