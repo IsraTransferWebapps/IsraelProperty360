@@ -3,10 +3,11 @@
  *
  * Usage:
  *   1. First run export-base44-data.mjs to generate ./export/*.json files
- *   2. Set environment variables:
+ *   2. Run supabase/schema-additions.sql in the Supabase SQL editor
+ *   3. Set environment variables:
  *        export SUPABASE_URL="https://your-project.supabase.co"
  *        export SUPABASE_SERVICE_KEY="your-service-role-key"  (NOT anon key)
- *   3. Run:  node scripts/import-to-supabase.mjs
+ *   4. Run:  node scripts/import-to-supabase.mjs
  *
  * Note: Uses the service role key to bypass RLS during import.
  */
@@ -24,6 +25,9 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+// Base44 internal fields to strip from all records
+const BASE44_INTERNAL_FIELDS = ['id', 'updated_date', 'created_by_id', 'created_by', 'is_sample'];
+
 // Import order respects foreign key dependencies
 const IMPORT_ORDER = [
   { file: 'City', table: 'cities' },
@@ -37,17 +41,42 @@ const IMPORT_ORDER = [
   { file: 'NewsletterSubscription', table: 'newsletter_subscriptions' },
 ];
 
-// Map Base44 field names to Supabase column names if they differ
 function transformRecord(record, table) {
-  // Remove Base44-internal fields
-  const { __type, __created, __updated, ...clean } = record;
+  // Strip Base44 internal fields
+  const clean = { ...record };
+  for (const field of BASE44_INTERNAL_FIELDS) {
+    delete clean[field];
+  }
 
-  // Base44 uses 'id' as a string — Supabase uses UUID.
-  // We drop the old ID and let Supabase generate a new UUID.
-  // If you need to preserve IDs for FK mapping, adjust this.
-  const { id: oldId, ...data } = clean;
+  // Table-specific transformations
+  if (table === 'blog_posts') {
+    // author_expert_id from Base44 is a string ID, not a UUID.
+    // We can't FK-link it, so store author_name/author_expertise and clear the FK.
+    delete clean.author_expert_id;
+  }
 
-  return data;
+  if (table === 'favorites') {
+    // favorites.property_id from Base44 is a string, not UUID FK.
+    // We drop it — favorites will need to be re-created after migration.
+    delete clean.property_id;
+  }
+
+  if (table === 'cities') {
+    // Map Base44 field name to our schema
+    if (clean.average_property_price !== undefined) {
+      clean.avg_price = clean.average_property_price;
+      delete clean.average_property_price;
+    }
+  }
+
+  // Remove null/undefined values to let Supabase defaults work
+  for (const key of Object.keys(clean)) {
+    if (clean[key] === null || clean[key] === undefined) {
+      delete clean[key];
+    }
+  }
+
+  return clean;
 }
 
 async function importEntity({ file, table }) {
@@ -66,17 +95,26 @@ async function importEntity({ file, table }) {
 
   const transformed = records.map((r) => transformRecord(r, table));
 
-  // Insert in batches of 100
-  const batchSize = 100;
+  // Insert in batches of 50 (smaller batches = better error messages)
+  const batchSize = 50;
   let inserted = 0;
   let errors = 0;
 
   for (let i = 0; i < transformed.length; i += batchSize) {
     const batch = transformed.slice(i, i + batchSize);
-    const { error } = await supabase.from(table).insert(batch);
+    const { data, error } = await supabase.from(table).insert(batch).select('id');
     if (error) {
       console.error(`  [ERROR] ${table} batch ${i}: ${error.message}`);
-      errors += batch.length;
+      // Try inserting one by one to identify problematic records
+      for (let j = 0; j < batch.length; j++) {
+        const { error: singleError } = await supabase.from(table).insert(batch[j]);
+        if (singleError) {
+          console.error(`    Record ${i + j}: ${singleError.message}`);
+          errors++;
+        } else {
+          inserted++;
+        }
+      }
     } else {
       inserted += batch.length;
     }
@@ -93,11 +131,11 @@ async function main() {
   }
 
   console.log('\nImport complete!');
-  console.log('\nNOTE: User profiles are NOT imported here because they must be');
-  console.log('linked to Supabase auth.users. Users will get profiles auto-created');
-  console.log('when they sign in via Google OAuth for the first time.');
-  console.log('\nTo import admin users, manually insert into the profiles table');
-  console.log('after they have signed in, setting role = "admin".');
+  console.log('\nNOTE: User profiles are NOT imported — they are auto-created');
+  console.log('when users register via the new email/password auth.');
+  console.log('\nFavorites were imported without property_id links (IDs changed).');
+  console.log('Blog post author_expert_id links were also cleared (IDs changed).');
+  console.log('Author names are preserved in author_name/author_expertise fields.');
 }
 
 main().catch(console.error);
