@@ -2,10 +2,13 @@ import { supabase } from './supabaseClient';
 
 export const Core = {
   SendEmail: async ({ to, subject, body }) => {
-    const { data, error } = await supabase.functions.invoke('send-email', {
-      body: { to, subject, body },
+    const res = await fetch('/.netlify/functions/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, subject, body }),
     });
-    if (error) throw error;
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to send email');
     return data;
   },
 
