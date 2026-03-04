@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/api/supabaseClient';
 import { base44 } from '@/api/base44Client';
+
+// Helper: retry an async auth operation once if it hits the Supabase session lock error
+const withLockRetry = async (fn) => {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err.message?.includes('Lock broken') || err.name === 'AbortError') {
+      await new Promise((r) => setTimeout(r, 600));
+      return await fn();
+    }
+    throw err;
+  }
+};
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -62,16 +75,18 @@ export default function RegisterPage() {
         setIsLoading(true);
         try {
             // Sign up with Supabase Auth
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-                email: formData.email,
-                password: formData.password,
-                options: {
-                    emailRedirectTo: window.location.origin,
-                    data: {
-                        full_name: formData.full_name,
+            const { data: signUpData, error: signUpError } = await withLockRetry(() =>
+                supabase.auth.signUp({
+                    email: formData.email,
+                    password: formData.password,
+                    options: {
+                        emailRedirectTo: window.location.origin,
+                        data: {
+                            full_name: formData.full_name,
+                        },
                     },
-                },
-            });
+                })
+            );
 
             if (signUpError) {
                 if (signUpError.message?.includes('already registered')) {
@@ -105,7 +120,11 @@ export default function RegisterPage() {
             }
         } catch (err) {
             console.error('Registration error:', err);
-            setError('Failed to complete registration. Please try again.');
+            if (err.message?.includes('Lock broken') || err.name === 'AbortError') {
+                setError('A temporary issue occurred. Please try again.');
+            } else {
+                setError('Failed to complete registration. Please try again.');
+            }
         } finally {
             setIsLoading(false);
         }

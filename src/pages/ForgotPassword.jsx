@@ -1,5 +1,18 @@
 import React, { useState } from 'react';
 import { supabase } from '@/api/supabaseClient';
+
+// Helper: retry an async auth operation once if it hits the Supabase session lock error
+const withLockRetry = async (fn) => {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err.message?.includes('Lock broken') || err.name === 'AbortError') {
+      await new Promise((r) => setTimeout(r, 600));
+      return await fn();
+    }
+    throw err;
+  }
+};
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,15 +38,21 @@ export default function ForgotPasswordPage() {
     setError('');
 
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/ResetPassword`,
-      });
+      const { error: resetError } = await withLockRetry(() =>
+        supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/ResetPassword`,
+        })
+      );
 
       if (resetError) throw resetError;
       setSuccess(true);
     } catch (err) {
       console.error('Password reset error:', err);
-      setError(err.message || 'Failed to send reset email. Please try again.');
+      if (err.message?.includes('Lock broken') || err.name === 'AbortError') {
+        setError('A temporary issue occurred. Please try again.');
+      } else {
+        setError(err.message || 'Failed to send reset email. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }

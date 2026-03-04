@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '@/api/supabaseClient';
+import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,12 +9,27 @@ import { Loader2, AlertCircle, Mail, Lock } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
+// Helper: retry an async auth operation once if it hits the Supabase session lock error
+const withLockRetry = async (fn) => {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err.message?.includes('Lock broken') || err.name === 'AbortError') {
+      // Wait for the lock to release, then retry once
+      await new Promise((r) => setTimeout(r, 600));
+      return await fn();
+    }
+    throw err;
+  }
+};
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { isLoadingAuth } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -26,10 +42,9 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error: signInError } = await withLockRetry(() =>
+        supabase.auth.signInWithPassword({ email, password })
+      );
 
       if (signInError) throw signInError;
 
@@ -46,6 +61,8 @@ export default function LoginPage() {
       console.error('Login error:', err);
       if (err.message?.includes('Invalid login credentials')) {
         setError('Invalid email or password. Please try again.');
+      } else if (err.message?.includes('Lock broken') || err.name === 'AbortError') {
+        setError('A temporary issue occurred. Please try signing in again.');
       } else {
         setError(err.message || 'Login failed. Please try again.');
       }
@@ -112,12 +129,12 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full h-12 bg-blue-600 hover:bg-blue-700"
-              disabled={isLoading}
+              disabled={isLoading || isLoadingAuth}
             >
-              {isLoading ? (
+              {isLoading || isLoadingAuth ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Signing in...
+                  {isLoadingAuth ? 'Loading...' : 'Signing in...'}
                 </>
               ) : (
                 'Sign In'
