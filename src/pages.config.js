@@ -20,6 +20,7 @@ import Favorites from './pages/Favorites';
 import GetStarted from './pages/GetStarted';
 import Home from './pages/Home';
 import ListProperty from './pages/ListProperty';
+import Login from './pages/Login';
 import Magazine from './pages/Magazine';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Properties from './pages/Properties';
@@ -57,6 +58,7 @@ export const PAGES = {
     "GetStarted": GetStarted,
     "Home": Home,
     "ListProperty": ListProperty,
+    "Login": Login,
     "Magazine": Magazine,
     "PrivacyPolicy": PrivacyPolicy,
     "Properties": Properties,
