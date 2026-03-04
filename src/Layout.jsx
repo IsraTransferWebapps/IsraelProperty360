@@ -73,9 +73,14 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const handleLogout = async () => {
-    await base44.auth.logout();
+    try {
+      await base44.auth.logout();
+    } catch (err) {
+      console.error('Logout error (ignored):', err);
+    }
+    // Always clear local state and reload, even if signOut threw
     setUser(null);
-    window.location.reload();
+    window.location.href = window.location.origin;
   };
 
   const toggleSection = (section) => {
@@ -188,7 +193,7 @@ export default function Layout({ children, currentPageName }) {
                               <li><NavigationMenuLink asChild><Link to={createPageUrl("AdminSetupBlog")} className="block p-2 rounded-md hover:bg-accent font-semibold text-blue-600">Admin: Setup Blog</Link></NavigationMenuLink></li>
                             </>
                           )}
-                          <li><NavigationMenuLink asChild><button onClick={handleLogout} className="w-full text-left p-2 rounded-md hover:bg-accent">Logout</button></NavigationMenuLink></li>
+                          <li><button onClick={handleLogout} className="w-full text-left p-2 rounded-md hover:bg-accent cursor-pointer">Logout</button></li>
                         </ul>
                       </NavigationMenuContent>
                     </NavigationMenuItem>
