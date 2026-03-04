@@ -7,6 +7,13 @@ export const Core = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ to, subject, body }),
     });
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error(
+        'Email service unavailable. The server returned an unexpected response. ' +
+        'Please ensure the RESEND_API_KEY environment variable is set in Netlify.'
+      );
+    }
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to send email');
     return data;
