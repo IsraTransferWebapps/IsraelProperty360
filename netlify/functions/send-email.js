@@ -63,7 +63,7 @@ export default async function handler(req) {
     if (!res.ok) {
       console.error('Resend API error:', data);
       return new Response(
-        JSON.stringify({ error: data }),
+        JSON.stringify({ error: data.message || JSON.stringify(data) }),
         { status: res.status, headers: { ...headers, 'Content-Type': 'application/json' } }
       );
     }

@@ -15,7 +15,8 @@ export const Core = {
       );
     }
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to send email');
+    const errMsg = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+    if (!res.ok) throw new Error(errMsg || 'Failed to send email');
     return data;
   },
 
