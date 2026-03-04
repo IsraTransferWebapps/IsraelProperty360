@@ -17,6 +17,7 @@ import Events from './pages/Events';
 import Expert from './pages/Expert';
 import Experts from './pages/Experts';
 import Favorites from './pages/Favorites';
+import ForgotPassword from './pages/ForgotPassword';
 import GetStarted from './pages/GetStarted';
 import Home from './pages/Home';
 import ListProperty from './pages/ListProperty';
@@ -28,6 +29,7 @@ import Property from './pages/Property';
 import PropertyAlerts from './pages/PropertyAlerts';
 import Register from './pages/Register';
 import RegisterExpert from './pages/RegisterExpert';
+import ResetPassword from './pages/ResetPassword';
 import TermsAndConditions from './pages/TermsAndConditions';
 import VisitorDashboard from './pages/VisitorDashboard';
 import Wiki from './pages/Wiki';
@@ -55,6 +57,7 @@ export const PAGES = {
     "Expert": Expert,
     "Experts": Experts,
     "Favorites": Favorites,
+    "ForgotPassword": ForgotPassword,
     "GetStarted": GetStarted,
     "Home": Home,
     "ListProperty": ListProperty,
@@ -66,6 +69,7 @@ export const PAGES = {
     "PropertyAlerts": PropertyAlerts,
     "Register": Register,
     "RegisterExpert": RegisterExpert,
+    "ResetPassword": ResetPassword,
     "TermsAndConditions": TermsAndConditions,
     "VisitorDashboard": VisitorDashboard,
     "Wiki": Wiki,

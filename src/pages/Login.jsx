@@ -124,6 +124,12 @@ export default function LoginPage() {
               )}
             </Button>
 
+            <div className="text-center text-sm text-gray-600 mt-2">
+              <Link to={createPageUrl('ForgotPassword')} className="text-blue-600 hover:underline font-medium">
+                Forgot your password?
+              </Link>
+            </div>
+
             <div className="text-center text-sm text-gray-600 mt-4">
               Don't have an account?{' '}
               <Link to={createPageUrl('Register')} className="text-blue-600 hover:underline font-medium">
