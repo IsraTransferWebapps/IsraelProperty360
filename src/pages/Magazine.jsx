@@ -20,7 +20,7 @@ export default function MagazinePage() {
       // Load featured blog posts by category
       const [marketPosts, expertPosts, investmentPosts] = await Promise.all([
         base44.entities.BlogPost.filter({ 
-          category: 'market_trends', 
+          category: 'market_update', 
           published: true 
         }, '-created_date', 1),
         base44.entities.BlogPost.filter({ 
@@ -42,7 +42,7 @@ export default function MagazinePage() {
           description: marketPosts[0]?.excerpt || 'In-depth analysis of current market trends and future predictions for Israeli real estate.',
           content: marketPosts[0]?.title || 'Israeli Real Estate Market Trends 2025',
           author: marketPosts[0]?.author_name || 'Market Experts',
-          link: marketPosts[0] ? createPageUrl(`BlogPost?slug=${marketPosts[0].slug || marketPosts[0].id}`) : createPageUrl('Blog?category=market_trends')
+          link: marketPosts[0] ? createPageUrl(`BlogPost?slug=${marketPosts[0].slug || marketPosts[0].id}`) : createPageUrl('Blog?category=market_update')
         },
         {
           id: 2,

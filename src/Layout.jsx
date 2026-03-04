@@ -182,7 +182,10 @@ export default function Layout({ children, currentPageName }) {
                           {user.role === 'admin' && (
                             <>
                               <li className="border-t pt-2"><NavigationMenuLink asChild><Link to={createPageUrl("AdminUsers")} className="block p-2 rounded-md hover:bg-accent font-semibold text-blue-600">Admin: Users</Link></NavigationMenuLink></li>
+                              <li><NavigationMenuLink asChild><Link to={createPageUrl("AdminReviewProperties")} className="block p-2 rounded-md hover:bg-accent font-semibold text-blue-600">Admin: Review Properties</Link></NavigationMenuLink></li>
                               <li><NavigationMenuLink asChild><Link to={createPageUrl("AdminReviewExperts")} className="block p-2 rounded-md hover:bg-accent font-semibold text-blue-600">Admin: Review Experts</Link></NavigationMenuLink></li>
+                              <li><NavigationMenuLink asChild><Link to={createPageUrl("AdminReviewEvents")} className="block p-2 rounded-md hover:bg-accent font-semibold text-blue-600">Admin: Review Events</Link></NavigationMenuLink></li>
+                              <li><NavigationMenuLink asChild><Link to={createPageUrl("AdminSetupBlog")} className="block p-2 rounded-md hover:bg-accent font-semibold text-blue-600">Admin: Setup Blog</Link></NavigationMenuLink></li>
                             </>
                           )}
                           <li><NavigationMenuLink asChild><button onClick={handleLogout} className="w-full text-left p-2 rounded-md hover:bg-accent">Logout</button></NavigationMenuLink></li>
@@ -308,6 +311,15 @@ export default function Layout({ children, currentPageName }) {
                             <SheetClose asChild><Link to={createPageUrl("BrokerDashboard")} className="block px-4 py-2 hover:bg-accent rounded-md">My Dashboard</Link></SheetClose>
                             <SheetClose asChild><Link to={createPageUrl("ListProperty")} className="block px-4 py-2 hover:bg-accent rounded-md">List Property</Link></SheetClose>
                           </>
+                        )}
+                        {user.role === 'admin' && (
+                          <div className="border-t pt-2 mt-2">
+                            <SheetClose asChild><Link to={createPageUrl("AdminUsers")} className="block px-4 py-2 hover:bg-accent rounded-md font-semibold text-blue-600">Admin: Users</Link></SheetClose>
+                            <SheetClose asChild><Link to={createPageUrl("AdminReviewProperties")} className="block px-4 py-2 hover:bg-accent rounded-md font-semibold text-blue-600">Admin: Review Properties</Link></SheetClose>
+                            <SheetClose asChild><Link to={createPageUrl("AdminReviewExperts")} className="block px-4 py-2 hover:bg-accent rounded-md font-semibold text-blue-600">Admin: Review Experts</Link></SheetClose>
+                            <SheetClose asChild><Link to={createPageUrl("AdminReviewEvents")} className="block px-4 py-2 hover:bg-accent rounded-md font-semibold text-blue-600">Admin: Review Events</Link></SheetClose>
+                            <SheetClose asChild><Link to={createPageUrl("AdminSetupBlog")} className="block px-4 py-2 hover:bg-accent rounded-md font-semibold text-blue-600">Admin: Setup Blog</Link></SheetClose>
+                          </div>
                         )}
                         <Button variant="ghost" onClick={handleLogout} className="w-full justify-start px-4">Logout</Button>
                       </div>

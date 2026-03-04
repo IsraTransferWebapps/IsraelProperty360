@@ -58,7 +58,7 @@ export default function BlogPage() {
     const colors = {
       legal: 'bg-blue-100 text-blue-800',
       finance: 'bg-green-100 text-green-800',
-      market_trends: 'bg-purple-100 text-purple-800',
+      market_update: 'bg-purple-100 text-purple-800',
       buying_guide: 'bg-yellow-100 text-yellow-800',
       investment: 'bg-red-100 text-red-800'
     };
@@ -69,7 +69,7 @@ export default function BlogPage() {
     const labels = {
       legal: 'Legal',
       finance: 'Finance',
-      market_trends: 'Market Trends',
+      market_update: 'Market Trends',
       buying_guide: 'Buying Guide',
       investment: 'Investment'
     };
@@ -137,7 +137,7 @@ export default function BlogPage() {
                   <SelectItem value={null}>All Categories</SelectItem>
                   <SelectItem value="legal">Legal</SelectItem>
                   <SelectItem value="finance">Finance</SelectItem>
-                  <SelectItem value="market_trends">Market Trends</SelectItem>
+                  <SelectItem value="market_update">Market Trends</SelectItem>
                   <SelectItem value="buying_guide">Buying Guide</SelectItem>
                   <SelectItem value="investment">Investment</SelectItem>
                 </SelectContent>

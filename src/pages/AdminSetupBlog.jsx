@@ -260,7 +260,7 @@ export default function AdminSetupBlogPage() {
                     <SelectContent>
                       <SelectItem value="legal">Legal</SelectItem>
                       <SelectItem value="finance">Finance</SelectItem>
-                      <SelectItem value="market_trends">Market Trends</SelectItem>
+                      <SelectItem value="market_update">Market Trends</SelectItem>
                       <SelectItem value="buying_guide">Buying Guide</SelectItem>
                       <SelectItem value="investment">Investment</SelectItem>
                     </SelectContent>
