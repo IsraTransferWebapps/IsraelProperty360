@@ -7,6 +7,10 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import MagazineLayout from '@/components/magazine/MagazineLayout';
+import MagazineHome from './pages/MagazineHome';
+import MagazineIssuePage from './pages/MagazineIssuePage';
+import MagazineArticlePage from './pages/MagazineArticlePage';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -15,6 +19,10 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
+
+const MagazineLayoutWrapper = ({ children }) => (
+  <MagazineLayout>{children}</MagazineLayout>
+);
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin } = useAuth();
@@ -39,6 +47,13 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
+      {/* Magazine sub-site with its own layout */}
+      <Route path="/magazine" element={<MagazineLayoutWrapper><MagazineHome /></MagazineLayoutWrapper>} />
+      <Route path="/magazine/latest" element={<MagazineLayoutWrapper><MagazineIssuePage /></MagazineLayoutWrapper>} />
+      <Route path="/magazine/issue/:slug" element={<MagazineLayoutWrapper><MagazineIssuePage /></MagazineLayoutWrapper>} />
+      <Route path="/magazine/article/:slug" element={<MagazineLayoutWrapper><MagazineArticlePage /></MagazineLayoutWrapper>} />
+
+      {/* Main site routes */}
       <Route path="/" element={
         <LayoutWrapper currentPageName={mainPageKey}>
           <MainPage />

@@ -91,3 +91,5 @@ export const WikiTopic = createEntity('wiki_topics');
 export const Testimonial = createEntity('testimonials');
 export const NewsletterSubscription = createEntity('newsletter_subscriptions');
 export const User = createEntity('profiles');
+export const MagazineIssue = createEntity('magazine_issues');
+export const MagazineArticle = createEntity('magazine_articles');

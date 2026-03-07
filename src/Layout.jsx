@@ -103,10 +103,10 @@ export default function Layout({ children, currentPageName }) {
       `}</style>
 
       {/* Magazine Banner */}
-      <Link to={createPageUrl("Magazine")} className="block">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 text-center hover:from-blue-700 hover:to-purple-700 transition-all">
+      <Link to="/magazine" className="block">
+        <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 px-4 text-center hover:from-amber-600 hover:to-orange-600 transition-all">
           <p className="text-sm md:text-base font-semibold">
-            ✨ Winter 2026 Magazine Now Live! <span className="hidden sm:inline">Click to read the latest issue</span> →
+            Israel Property Magazine — March 2026 Issue Now Live! <span className="hidden sm:inline">Click to read</span> →
           </p>
         </div>
       </Link>
@@ -191,6 +191,7 @@ export default function Layout({ children, currentPageName }) {
                               <li><NavigationMenuLink asChild><Link to={createPageUrl("AdminReviewExperts")} className="block p-2 rounded-md hover:bg-accent font-semibold text-blue-600">Admin: Review Experts</Link></NavigationMenuLink></li>
                               <li><NavigationMenuLink asChild><Link to={createPageUrl("AdminReviewEvents")} className="block p-2 rounded-md hover:bg-accent font-semibold text-blue-600">Admin: Review Events</Link></NavigationMenuLink></li>
                               <li><NavigationMenuLink asChild><Link to={createPageUrl("AdminSetupBlog")} className="block p-2 rounded-md hover:bg-accent font-semibold text-blue-600">Admin: Setup Blog</Link></NavigationMenuLink></li>
+                              <li><NavigationMenuLink asChild><Link to={createPageUrl("AdminMagazine")} className="block p-2 rounded-md hover:bg-accent font-semibold text-amber-600">Admin: Magazine</Link></NavigationMenuLink></li>
                             </>
                           )}
                           <li><button onClick={handleLogout} className="w-full text-left p-2 rounded-md hover:bg-accent cursor-pointer">Logout</button></li>
@@ -282,10 +283,13 @@ export default function Layout({ children, currentPageName }) {
                       </CollapsibleTrigger>
                       <CollapsibleContent className="pl-4 pt-2 space-y-1">
                         <SheetClose asChild>
-                          <Link to={createPageUrl("Magazine")} className="block p-2 hover:bg-accent rounded-md text-sm">Latest Issue</Link>
+                          <Link to="/magazine" className="block p-2 hover:bg-accent rounded-md text-sm">Magazine Home</Link>
                         </SheetClose>
                         <SheetClose asChild>
-                          <Link to={createPageUrl("Blog")} className="block p-2 hover:bg-accent rounded-md text-sm">Articles & Blog</Link>
+                          <Link to="/magazine/latest" className="block p-2 hover:bg-accent rounded-md text-sm">Current Issue</Link>
+                        </SheetClose>
+                        <SheetClose asChild>
+                          <Link to="/magazine#subscribe" className="block p-2 hover:bg-accent rounded-md text-sm">Subscribe</Link>
                         </SheetClose>
                       </CollapsibleContent>
                     </Collapsible>
@@ -324,6 +328,7 @@ export default function Layout({ children, currentPageName }) {
                             <SheetClose asChild><Link to={createPageUrl("AdminReviewExperts")} className="block px-4 py-2 hover:bg-accent rounded-md font-semibold text-blue-600">Admin: Review Experts</Link></SheetClose>
                             <SheetClose asChild><Link to={createPageUrl("AdminReviewEvents")} className="block px-4 py-2 hover:bg-accent rounded-md font-semibold text-blue-600">Admin: Review Events</Link></SheetClose>
                             <SheetClose asChild><Link to={createPageUrl("AdminSetupBlog")} className="block px-4 py-2 hover:bg-accent rounded-md font-semibold text-blue-600">Admin: Setup Blog</Link></SheetClose>
+                            <SheetClose asChild><Link to={createPageUrl("AdminMagazine")} className="block px-4 py-2 hover:bg-accent rounded-md font-semibold text-amber-600">Admin: Magazine</Link></SheetClose>
                           </div>
                         )}
                         <Button variant="ghost" onClick={handleLogout} className="w-full justify-start px-4">Logout</Button>
@@ -393,6 +398,9 @@ export default function Layout({ children, currentPageName }) {
                 </Link>
                 <Link to={createPageUrl("Blog")} className="block text-gray-300 hover:text-white transition-colors">
                   Blog & Articles
+                </Link>
+                <Link to="/magazine" className="block text-gray-300 hover:text-white transition-colors">
+                  Property Magazine
                 </Link>
               </div>
             </div>
