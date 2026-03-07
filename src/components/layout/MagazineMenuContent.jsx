@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
-import { BookOpen, TrendingUp, Users, Download } from 'lucide-react';
+import { BookOpen, Calendar, Archive, Mail } from 'lucide-react';
 import {
   NavigationMenuLink,
 } from "@/components/ui/navigation-menu";
@@ -16,8 +15,8 @@ const ListItem = React.forwardRef(({ className, title, children, href, icon: Ico
           className={`flex items-start gap-3 select-none rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${className}`}
           {...props}
         >
-          <div className="p-2 bg-gray-100 rounded-md flex-shrink-0">
-            <Icon className="w-5 h-5 text-gray-600" />
+          <div className="p-2 bg-amber-50 rounded-md flex-shrink-0">
+            <Icon className="w-5 h-5 text-amber-600" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium leading-tight">{title}</div>
@@ -36,33 +35,33 @@ export default function MagazineMenuContent() {
   return (
     <div className="p-4 md:w-[400px] lg:w-[500px]">
       <ul className="grid gap-3">
-        <ListItem 
-          href={createPageUrl("Magazine")} 
-          title="Latest Issue"
+        <ListItem
+          href="/magazine"
+          title="Magazine Home"
           icon={BookOpen}
         >
-          Read our comprehensive guide to Israeli real estate trends and opportunities.
+          Your monthly guide to buying property in Israel — expert insights delivered free.
         </ListItem>
-        <ListItem 
-          href={createPageUrl("Magazine")} 
-          title="Market Analysis"
-          icon={TrendingUp}
+        <ListItem
+          href="/magazine/latest"
+          title="Current Issue"
+          icon={Calendar}
         >
-          Deep dive into current market conditions and future predictions for Israeli property.
+          Read the latest issue with articles from lawyers, mortgage advisors, and realtors.
         </ListItem>
-        <ListItem 
-          href={createPageUrl("Magazine")} 
-          title="Expert Interviews"
-          icon={Users}
+        <ListItem
+          href="/magazine#archive"
+          title="Past Issues"
+          icon={Archive}
         >
-          Exclusive conversations with leading professionals in Israeli real estate.
+          Browse our archive of previous monthly issues.
         </ListItem>
-        <ListItem 
-          href={createPageUrl("Magazine")} 
-          title="Download Archive"
-          icon={Download}
+        <ListItem
+          href="/magazine#subscribe"
+          title="Subscribe"
+          icon={Mail}
         >
-          Access previous issues and build your property knowledge library.
+          Get each new issue delivered straight to your inbox for free.
         </ListItem>
       </ul>
     </div>

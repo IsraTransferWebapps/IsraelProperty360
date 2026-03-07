@@ -3,6 +3,7 @@ import AdminReviewEvents from './pages/AdminReviewEvents';
 import AdminReviewExperts from './pages/AdminReviewExperts';
 import AdminReviewProperties from './pages/AdminReviewProperties';
 import AdminSetupBlog from './pages/AdminSetupBlog';
+import AdminMagazine from './pages/AdminMagazine';
 import AdminUsers from './pages/AdminUsers';
 import AdvertiseServices from './pages/AdvertiseServices';
 import Blog from './pages/Blog';
@@ -43,6 +44,7 @@ export const PAGES = {
     "AdminReviewExperts": AdminReviewExperts,
     "AdminReviewProperties": AdminReviewProperties,
     "AdminSetupBlog": AdminSetupBlog,
+    "AdminMagazine": AdminMagazine,
     "AdminUsers": AdminUsers,
     "AdvertiseServices": AdvertiseServices,
     "Blog": Blog,

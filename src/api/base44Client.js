@@ -15,6 +15,8 @@ export const base44 = {
     Testimonial: entities.Testimonial,
     NewsletterSubscription: entities.NewsletterSubscription,
     User: entities.User,
+    MagazineIssue: entities.MagazineIssue,
+    MagazineArticle: entities.MagazineArticle,
   },
   integrations: {
     Core: integrations.Core,
