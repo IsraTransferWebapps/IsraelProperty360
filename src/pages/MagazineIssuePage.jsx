@@ -1,19 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
+import HTMLFlipBook from "react-pageflip";
 import {
   ArrowLeft,
   ArrowRight,
-  Calendar,
-  ChevronDown,
-  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Share2,
+  Maximize2,
+  Minimize2,
+  BookOpen,
   User,
-  ExternalLink,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import {
@@ -22,24 +23,77 @@ import {
   getIssueLabel,
 } from "@/components/magazine/magazineConstants";
 
+// Individual page component - must use forwardRef for react-pageflip
+const Page = React.forwardRef(({ children, className = "" }, ref) => (
+  <div ref={ref} className={`magazine-page bg-white shadow-lg ${className}`}>
+    {children}
+  </div>
+));
+Page.displayName = "Page";
+
+// Split markdown content into chunks that fit on pages
+function splitContentIntoPages(content, charsPerPage = 1200) {
+  if (!content) return [""];
+  const paragraphs = content.split("\n\n");
+  const pages = [];
+  let currentPage = "";
+
+  for (const para of paragraphs) {
+    if (currentPage.length + para.length > charsPerPage && currentPage.length > 0) {
+      pages.push(currentPage.trim());
+      currentPage = para;
+    } else {
+      currentPage += (currentPage ? "\n\n" : "") + para;
+    }
+  }
+  if (currentPage.trim()) {
+    pages.push(currentPage.trim());
+  }
+  return pages.length > 0 ? pages : [""];
+}
+
 export default function MagazineIssuePage() {
   const { slug } = useParams();
   const [issue, setIssue] = useState(null);
   const [articles, setArticles] = useState([]);
   const [experts, setExperts] = useState({});
-  const [expandedArticles, setExpandedArticles] = useState({});
-  const [adjacentIssues, setAdjacentIssues] = useState({ prev: null, next: null });
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: 500, height: 700 });
+  const flipBookRef = useRef(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     loadIssue(slug || "latest");
   }, [slug]);
 
+  // Responsive sizing
+  useEffect(() => {
+    const updateDimensions = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      if (isFullscreen) {
+        const pageWidth = Math.min(Math.floor((vw - 80) / 2), 600);
+        const pageHeight = Math.min(vh - 120, Math.floor(pageWidth * 1.4));
+        setDimensions({ width: pageWidth, height: pageHeight });
+      } else if (vw < 768) {
+        const w = Math.min(vw - 32, 400);
+        setDimensions({ width: w, height: Math.floor(w * 1.4) });
+      } else {
+        setDimensions({ width: 480, height: 672 });
+      }
+    };
+    updateDimensions();
+    window.addEventListener("resize", updateDimensions);
+    return () => window.removeEventListener("resize", updateDimensions);
+  }, [isFullscreen]);
+
   const loadIssue = async (issueSlug) => {
     setIsLoading(true);
     try {
       let issueData;
-
       if (issueSlug === "latest") {
         const allIssues = await base44.entities.MagazineIssue.filter(
           { published: true },
@@ -58,23 +112,16 @@ export default function MagazineIssuePage() {
         setIsLoading(false);
         return;
       }
-
       setIssue(issueData);
 
-      // Load articles for this issue
       const issueArticles = await base44.entities.MagazineArticle.filter(
         { issue_id: issueData.id, published: true },
         "display_order"
       );
       setArticles(issueArticles);
 
-      // Load expert authors
       const expertIds = [
-        ...new Set(
-          issueArticles
-            .map((a) => a.author_expert_id)
-            .filter(Boolean)
-        ),
+        ...new Set(issueArticles.map((a) => a.author_expert_id).filter(Boolean)),
       ];
       if (expertIds.length > 0) {
         const expertMap = {};
@@ -83,72 +130,294 @@ export default function MagazineIssuePage() {
             try {
               const results = await base44.entities.Expert.filter({ id: eid });
               if (results.length > 0) expertMap[eid] = results[0];
-            } catch (e) {
-              console.log("Expert not found:", eid);
-            }
+            } catch (e) {}
           })
         );
         setExperts(expertMap);
       }
-
-      // Load adjacent issues for prev/next navigation
-      const allIssues = await base44.entities.MagazineIssue.filter(
-        { published: true },
-        "-created_date"
-      );
-      allIssues.sort((a, b) => b.year - a.year || b.month - a.month);
-      const currentIdx = allIssues.findIndex((i) => i.id === issueData.id);
-      setAdjacentIssues({
-        prev: currentIdx < allIssues.length - 1 ? allIssues[currentIdx + 1] : null,
-        next: currentIdx > 0 ? allIssues[currentIdx - 1] : null,
-      });
     } catch (error) {
       console.error("Error loading issue:", error);
     }
     setIsLoading(false);
   };
 
-  const toggleArticle = (articleId) => {
-    setExpandedArticles((prev) => ({
-      ...prev,
-      [articleId]: !prev[articleId],
-    }));
-  };
+  const onFlip = useCallback((e) => {
+    setCurrentPage(e.data);
+  }, []);
+
+  const onInit = useCallback((e) => {
+    setTotalPages(e.data?.pages?.length || 0);
+  }, []);
+
+  const goNext = () => flipBookRef.current?.pageFlip()?.flipNext();
+  const goPrev = () => flipBookRef.current?.pageFlip()?.flipPrev();
+  const goToPage = (n) => flipBookRef.current?.pageFlip()?.flip(n);
+
+  const toggleFullscreen = () => setIsFullscreen(!isFullscreen);
 
   const handleShare = () => {
     const url = window.location.href;
     if (navigator.share) {
-      navigator
-        .share({
-          title: issue?.title || "Israel Property Magazine",
-          text: issue?.description || "Check out this issue",
-          url,
-        })
-        .catch(() => {});
+      navigator.share({ title: issue?.title, url }).catch(() => {});
     } else {
       navigator.clipboard.writeText(url);
       alert("Link copied to clipboard!");
     }
   };
 
-  // Group articles by category
-  const articlesByCategory = {};
-  CATEGORY_ORDER.forEach((cat) => {
-    const catArticles = articles.filter((a) => a.category === cat);
-    if (catArticles.length > 0) {
-      articlesByCategory[cat] = catArticles;
-    }
-  });
+  // Build the pages array
+  const buildPages = () => {
+    if (!issue) return [];
+    const pages = [];
+
+    // --- COVER PAGE ---
+    pages.push(
+      <Page key="cover">
+        <div className="h-full flex flex-col relative overflow-hidden">
+          <img
+            src={issue.cover_image_url || "https://images.unsplash.com/photo-1544829099-b9a0c07fad1a?auto=format&fit=crop&w=800&q=80"}
+            alt={issue.title}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10" />
+          <div className="relative z-10 mt-auto p-8">
+            <div className="inline-block bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded mb-4 uppercase tracking-widest">
+              {getIssueLabel(issue.month, issue.year)}
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white mb-3 leading-tight">
+              {issue.title}
+            </h1>
+            <p className="text-white/70 text-sm leading-relaxed">
+              {issue.description}
+            </p>
+            <div className="mt-6 flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center">
+                <BookOpen className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-white text-xs font-bold">Israel Property</p>
+                <p className="text-amber-400 text-[10px] tracking-[0.15em] uppercase">Magazine</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Page>
+    );
+
+    // --- TABLE OF CONTENTS PAGE ---
+    pages.push(
+      <Page key="toc">
+        <div className="h-full flex flex-col p-8">
+          <div className="border-b-2 border-amber-500 pb-4 mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">In This Issue</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              {getIssueLabel(issue.month, issue.year)}
+            </p>
+          </div>
+          <div className="flex-1 space-y-4">
+            {articles.map((article, idx) => {
+              const catInfo = MAGAZINE_CATEGORIES[article.category] || MAGAZINE_CATEGORIES.editorial;
+              const CatIcon = catInfo.icon;
+              return (
+                <div key={article.id} className="flex items-start gap-3 group">
+                  <div className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center ${catInfo.color}`}>
+                    <CatIcon className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 text-sm leading-tight">
+                      {article.title}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {catInfo.label} — {article.author_name || "Editorial Team"}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-auto pt-4 border-t border-gray-200 text-center">
+            <p className="text-xs text-gray-400">israelproperty360.com/magazine</p>
+          </div>
+        </div>
+      </Page>
+    );
+
+    // --- ARTICLE PAGES ---
+    articles.forEach((article) => {
+      const catInfo = MAGAZINE_CATEGORIES[article.category] || MAGAZINE_CATEGORIES.editorial;
+      const CatIcon = catInfo.icon;
+      const expert = experts[article.author_expert_id];
+      const contentPages = splitContentIntoPages(article.content, 900);
+
+      // Article title page (with image)
+      pages.push(
+        <Page key={`art-title-${article.id}`}>
+          <div className="h-full flex flex-col">
+            {/* Article image - top half */}
+            <div className="h-2/5 relative overflow-hidden flex-shrink-0">
+              <img
+                src={article.image_url || "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80"}
+                alt={article.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
+            </div>
+            {/* Article header - bottom half */}
+            <div className="flex-1 px-8 pb-6 flex flex-col">
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${catInfo.color} w-fit mb-3`}>
+                <CatIcon className="w-3 h-3" />
+                {catInfo.label}
+              </div>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 leading-tight">
+                {article.title}
+              </h2>
+              <p className="text-gray-600 text-sm leading-relaxed mb-4 line-clamp-3">
+                {article.excerpt}
+              </p>
+              <div className="mt-auto flex items-center gap-3">
+                {expert?.image_url ? (
+                  <img
+                    src={expert.image_url}
+                    alt={article.author_name}
+                    className="w-10 h-10 rounded-full object-cover border-2 border-amber-200"
+                  />
+                ) : (
+                  <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-white" />
+                  </div>
+                )}
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">
+                    {article.author_name || "Editorial Team"}
+                  </p>
+                  {expert?.company && (
+                    <p className="text-xs text-gray-500">{expert.company}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </Page>
+      );
+
+      // Article content pages
+      contentPages.forEach((pageContent, pageIdx) => {
+        pages.push(
+          <Page key={`art-content-${article.id}-${pageIdx}`}>
+            <div className="h-full flex flex-col p-8">
+              {/* Page header */}
+              <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-100 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <CatIcon className="w-3.5 h-3.5 text-amber-600" />
+                  <span className="text-xs font-medium text-amber-700">{catInfo.label}</span>
+                </div>
+                <span className="text-xs text-gray-400">
+                  {article.author_name}
+                </span>
+              </div>
+              {/* Content */}
+              <div className="flex-1 overflow-hidden">
+                <style>{`
+                  .flip-content {
+                    color: #374151;
+                    font-size: 0.85rem;
+                    line-height: 1.7;
+                  }
+                  .flip-content p {
+                    margin-bottom: 0.75rem;
+                  }
+                  .flip-content h2 {
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    color: #111827;
+                    margin-top: 1rem;
+                    margin-bottom: 0.5rem;
+                    border-left: 3px solid #f59e0b;
+                    padding-left: 0.75rem;
+                  }
+                  .flip-content h3 {
+                    font-size: 0.95rem;
+                    font-weight: 700;
+                    color: #92400e;
+                    margin-top: 0.75rem;
+                    margin-bottom: 0.5rem;
+                  }
+                  .flip-content ul, .flip-content ol {
+                    padding-left: 1.25rem;
+                    margin-bottom: 0.75rem;
+                  }
+                  .flip-content li {
+                    margin-bottom: 0.25rem;
+                    line-height: 1.6;
+                  }
+                  .flip-content ul li { list-style-type: disc; }
+                  .flip-content ol li { list-style-type: decimal; }
+                  .flip-content strong { color: #111827; }
+                  .flip-content blockquote {
+                    border-left: 3px solid #f59e0b;
+                    background: #fffbeb;
+                    padding: 0.75rem 1rem;
+                    margin: 0.75rem 0;
+                    font-style: italic;
+                    color: #92400e;
+                    font-size: 0.85rem;
+                    border-radius: 0.25rem;
+                  }
+                  .flip-content a {
+                    color: #d97706;
+                    text-decoration: underline;
+                  }
+                `}</style>
+                <div className="flip-content">
+                  <ReactMarkdown>{pageContent}</ReactMarkdown>
+                </div>
+              </div>
+              {/* Page footer */}
+              <div className="pt-3 mt-auto border-t border-gray-100 flex-shrink-0">
+                <p className="text-[10px] text-gray-400 text-center">
+                  Israel Property Magazine — {getIssueLabel(issue.month, issue.year)}
+                </p>
+              </div>
+            </div>
+          </Page>
+        );
+      });
+    });
+
+    // --- BACK COVER ---
+    pages.push(
+      <Page key="back-cover">
+        <div className="h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center mb-6">
+            <BookOpen className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Israel Property</h2>
+          <p className="text-amber-400 text-sm tracking-[0.2em] uppercase mb-8">Magazine</p>
+          <p className="text-gray-400 text-sm mb-6 max-w-xs leading-relaxed">
+            Thank you for reading. Join us next month for more expert insights
+            on purchasing property in Israel.
+          </p>
+          <div className="space-y-2">
+            <p className="text-gray-500 text-xs">Subscribe for free at</p>
+            <p className="text-amber-400 text-sm font-semibold">israelproperty360.com/magazine</p>
+          </div>
+          <div className="mt-10 pt-6 border-t border-gray-700 w-full">
+            <p className="text-gray-500 text-xs">Brought to you by IsraTransfer</p>
+            <p className="text-gray-600 text-[10px] mt-1">isratransfer.com</p>
+          </div>
+        </div>
+      </Page>
+    );
+
+    return pages;
+  };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen">
-        <Skeleton className="h-80 w-full" />
-        <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-          <Skeleton className="h-12 w-3/4" />
-          <Skeleton className="h-6 w-1/2" />
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-64 w-full" />
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <Skeleton className="w-[400px] h-[560px] mx-auto rounded-lg" />
+          <Skeleton className="h-6 w-48 mx-auto mt-4" />
         </div>
       </div>
     );
@@ -159,9 +428,7 @@ export default function MagazineIssuePage() {
       <div className="min-h-screen flex items-center justify-center">
         <Card className="text-center p-8 max-w-md">
           <CardContent>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Issue Not Found
-            </h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Issue Not Found</h2>
             <p className="text-gray-600 mb-6">
               The magazine issue you're looking for doesn't exist or hasn't been published yet.
             </p>
@@ -174,375 +441,160 @@ export default function MagazineIssuePage() {
     );
   }
 
+  const allPages = buildPages();
+
   return (
-    <div className="min-h-screen">
-      {/* Cover Hero */}
-      <section className="relative">
-        <div className="h-80 md:h-[28rem] overflow-hidden relative">
-          <img
-            src={
-              issue.cover_image_url ||
-              "https://images.unsplash.com/photo-1544829099-b9a0c07fad1a?auto=format&fit=crop&w=1600&q=80"
-            }
-            alt={issue.title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10" />
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12">
-          <div className="max-w-4xl mx-auto">
-            <Link
-              to="/magazine"
-              className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm mb-4 transition-colors"
+    <div
+      ref={containerRef}
+      className={`min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 ${
+        isFullscreen
+          ? "fixed inset-0 z-50 bg-gray-900 flex flex-col"
+          : ""
+      }`}
+    >
+      <style>{`
+        .magazine-page {
+          background: white;
+          overflow: hidden;
+        }
+        .stf__parent {
+          margin: 0 auto;
+        }
+        .stf__wrapper {
+          box-shadow: 0 25px 60px -12px rgba(0,0,0,0.25), 0 10px 30px -10px rgba(0,0,0,0.15);
+          border-radius: 4px;
+        }
+      `}</style>
+
+      {/* Top bar */}
+      <div className={`${isFullscreen ? "bg-gray-900 border-b border-gray-800" : ""}`}>
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <Link
+            to="/magazine"
+            className={`inline-flex items-center gap-2 text-sm ${
+              isFullscreen
+                ? "text-gray-400 hover:text-white"
+                : "text-gray-500 hover:text-gray-800"
+            } transition-colors`}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            All Issues
+          </Link>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleShare}
+              className={isFullscreen ? "text-gray-400 hover:text-white" : ""}
             >
-              <ArrowLeft className="w-4 h-4" />
-              All Issues
-            </Link>
-            <Badge className="bg-amber-500 text-white border-0 mb-4 block w-fit">
-              <Calendar className="w-3 h-3 mr-1" />
-              {getIssueLabel(issue.month, issue.year)}
-            </Badge>
-            <h1 className="text-3xl md:text-5xl font-bold text-white mb-3">
-              {issue.title}
-            </h1>
-            <p className="text-lg text-white/80 max-w-2xl">
-              {issue.description}
+              <Share2 className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleFullscreen}
+              className={isFullscreen ? "text-gray-400 hover:text-white" : ""}
+            >
+              {isFullscreen ? (
+                <Minimize2 className="w-4 h-4" />
+              ) : (
+                <Maximize2 className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Flipbook */}
+      <div
+        className={`flex-1 flex items-center justify-center ${
+          isFullscreen ? "py-4" : "py-8 md:py-12"
+        }`}
+      >
+        <div className="relative">
+          {/* Previous button */}
+          <button
+            onClick={goPrev}
+            className={`absolute left-[-50px] top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all hidden md:flex ${
+              isFullscreen
+                ? "bg-gray-800 hover:bg-gray-700 text-white"
+                : "bg-white shadow-lg hover:shadow-xl text-gray-700"
+            }`}
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          <HTMLFlipBook
+            ref={flipBookRef}
+            width={dimensions.width}
+            height={dimensions.height}
+            size="fixed"
+            minWidth={280}
+            maxWidth={600}
+            minHeight={400}
+            maxHeight={840}
+            showCover={true}
+            maxShadowOpacity={0.5}
+            mobileScrollSupport={true}
+            onFlip={onFlip}
+            onInit={onInit}
+            className="magazine-flipbook"
+            flippingTime={800}
+            usePortrait={window.innerWidth < 768}
+            startPage={0}
+            drawShadow={true}
+            autoSize={false}
+            clickEventForward={false}
+            useMouseEvents={true}
+            swipeDistance={30}
+            showPageCorners={true}
+          >
+            {allPages}
+          </HTMLFlipBook>
+
+          {/* Next button */}
+          <button
+            onClick={goNext}
+            className={`absolute right-[-50px] top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all hidden md:flex ${
+              isFullscreen
+                ? "bg-gray-800 hover:bg-gray-700 text-white"
+                : "bg-white shadow-lg hover:shadow-xl text-gray-700"
+            }`}
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Bottom controls */}
+      <div className={`${isFullscreen ? "bg-gray-900 border-t border-gray-800" : ""}`}>
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          {/* Mobile prev/next buttons */}
+          <div className="flex items-center justify-center gap-4 md:hidden mb-3">
+            <Button variant="outline" size="sm" onClick={goPrev}>
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Prev
+            </Button>
+            <Button variant="outline" size="sm" onClick={goNext}>
+              Next
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+          {/* Page indicator */}
+          <div className="text-center">
+            <p className={`text-sm ${isFullscreen ? "text-gray-400" : "text-gray-500"}`}>
+              {allPages.length > 0
+                ? `Page ${currentPage + 1} of ${allPages.length}`
+                : ""}
+            </p>
+            {/* Hint text */}
+            <p className={`text-xs mt-1 ${isFullscreen ? "text-gray-600" : "text-gray-400"}`}>
+              {window.innerWidth >= 768
+                ? "Click the page edges or use arrows to turn pages"
+                : "Swipe or tap to turn pages"}
             </p>
           </div>
         </div>
-      </section>
-
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Table of Contents */}
-        <section className="py-10 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">In This Issue</h2>
-            <Button variant="outline" size="sm" onClick={handleShare}>
-              <Share2 className="w-4 h-4 mr-2" />
-              Share Issue
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {CATEGORY_ORDER.filter((cat) => articlesByCategory[cat]).map((cat) => {
-              const catInfo = MAGAZINE_CATEGORIES[cat];
-              const Icon = catInfo.icon;
-              return (
-                <a
-                  key={cat}
-                  href={`#section-${cat}`}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group"
-                >
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${catInfo.color}`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900 group-hover:text-amber-600 transition-colors">
-                      {catInfo.label}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {articlesByCategory[cat].length} article{articlesByCategory[cat].length !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                </a>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Article Sections */}
-        {CATEGORY_ORDER.filter((cat) => articlesByCategory[cat]).map((cat) => {
-          const catInfo = MAGAZINE_CATEGORIES[cat];
-          const Icon = catInfo.icon;
-          return (
-            <section
-              key={cat}
-              id={`section-${cat}`}
-              className="py-10 border-b border-gray-100 last:border-0"
-            >
-              {/* Section Header */}
-              <div className="flex items-center gap-3 mb-8">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${catInfo.color}`}>
-                  <Icon className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{catInfo.label}</h2>
-                </div>
-              </div>
-
-              {/* Articles */}
-              <div className="space-y-6">
-                {articlesByCategory[cat].map((article) => {
-                  const expert = experts[article.author_expert_id];
-                  const isExpanded = expandedArticles[article.id];
-
-                  return (
-                    <Card
-                      key={article.id}
-                      className={`overflow-hidden transition-all duration-300 border-l-4 ${catInfo.accent}`}
-                    >
-                      {/* Article Preview */}
-                      <CardContent className="p-0">
-                        <div className="flex flex-col md:flex-row">
-                          {/* Image */}
-                          {article.image_url && (
-                            <div className="md:w-64 h-48 md:h-auto flex-shrink-0 overflow-hidden">
-                              <img
-                                src={article.image_url}
-                                alt={article.title}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          )}
-                          {/* Content */}
-                          <div className="flex-1 p-6">
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">
-                              {article.title}
-                            </h3>
-
-                            {/* Author */}
-                            <div className="flex items-center gap-2 mb-3">
-                              {expert?.image_url ? (
-                                <img
-                                  src={expert.image_url}
-                                  alt={article.author_name}
-                                  className="w-8 h-8 rounded-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                                  <User className="w-4 h-4 text-gray-500" />
-                                </div>
-                              )}
-                              <div>
-                                <p className="text-sm font-medium text-gray-700">
-                                  {article.author_name || "Editorial Team"}
-                                </p>
-                                {expert?.company && (
-                                  <p className="text-xs text-gray-500">{expert.company}</p>
-                                )}
-                              </div>
-                            </div>
-
-                            <p className="text-gray-600 mb-4">{article.excerpt}</p>
-
-                            <div className="flex items-center gap-3">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => toggleArticle(article.id)}
-                              >
-                                {isExpanded ? (
-                                  <>
-                                    <ChevronUp className="w-4 h-4 mr-1" />
-                                    Collapse
-                                  </>
-                                ) : (
-                                  <>
-                                    <ChevronDown className="w-4 h-4 mr-1" />
-                                    Read Article
-                                  </>
-                                )}
-                              </Button>
-                              <Link to={`/magazine/article/${article.slug}`}>
-                                <Button variant="ghost" size="sm" className="text-amber-600 hover:text-amber-700">
-                                  <ExternalLink className="w-4 h-4 mr-1" />
-                                  Open Full Page
-                                </Button>
-                              </Link>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Expanded Article Content */}
-                        {isExpanded && (
-                          <div className="border-t border-gray-100">
-                            <div className="p-6 md:p-10">
-                              <style>{`
-                                .magazine-content {
-                                  color: #1f2937;
-                                  font-size: 1.125rem;
-                                  line-height: 1.9;
-                                }
-                                .magazine-content p {
-                                  margin-bottom: 1.75rem;
-                                  line-height: 1.9;
-                                }
-                                .magazine-content h1, .magazine-content h2, .magazine-content h3 {
-                                  margin-top: 2.5rem;
-                                  margin-bottom: 1.25rem;
-                                  font-weight: 700;
-                                  color: #111827;
-                                }
-                                .magazine-content h2 {
-                                  font-size: 1.5rem;
-                                  border-left: 4px solid #f59e0b;
-                                  padding-left: 1rem;
-                                }
-                                .magazine-content h3 {
-                                  font-size: 1.25rem;
-                                  color: #92400e;
-                                }
-                                .magazine-content ul, .magazine-content ol {
-                                  margin-bottom: 2rem;
-                                  padding-left: 0;
-                                  list-style: none;
-                                }
-                                .magazine-content ul li {
-                                  position: relative;
-                                  padding-left: 2rem;
-                                  margin-bottom: 1rem;
-                                  line-height: 1.8;
-                                }
-                                .magazine-content ul li:before {
-                                  content: "\\25B8";
-                                  position: absolute;
-                                  left: 0;
-                                  color: #f59e0b;
-                                  font-size: 1.5rem;
-                                  font-weight: bold;
-                                  line-height: 1.8;
-                                }
-                                .magazine-content ol {
-                                  counter-reset: item;
-                                }
-                                .magazine-content ol li {
-                                  position: relative;
-                                  padding-left: 2.5rem;
-                                  margin-bottom: 1rem;
-                                  line-height: 1.8;
-                                  counter-increment: item;
-                                }
-                                .magazine-content ol li:before {
-                                  content: counter(item) ".";
-                                  position: absolute;
-                                  left: 0;
-                                  color: #f59e0b;
-                                  font-weight: bold;
-                                }
-                                .magazine-content blockquote {
-                                  border-left: 5px solid #f59e0b;
-                                  background: linear-gradient(to right, #fffbeb, transparent);
-                                  padding: 1.5rem 1.5rem 1.5rem 2rem;
-                                  margin: 2rem 0;
-                                  font-style: italic;
-                                  color: #92400e;
-                                  border-radius: 0.5rem;
-                                }
-                                .magazine-content strong {
-                                  color: #111827;
-                                  font-weight: 700;
-                                }
-                                .magazine-content a {
-                                  color: #d97706;
-                                  text-decoration: none;
-                                  border-bottom: 2px solid #fcd34d;
-                                }
-                                .magazine-content a:hover {
-                                  color: #b45309;
-                                  border-bottom-color: #d97706;
-                                }
-                              `}</style>
-                              <div className="magazine-content prose prose-lg max-w-none">
-                                <ReactMarkdown>{article.content}</ReactMarkdown>
-                              </div>
-
-                              {/* Expert Author Card */}
-                              {expert && (
-                                <div className="mt-10 p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200">
-                                  <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-                                    About the Author
-                                  </h4>
-                                  <div className="flex flex-col sm:flex-row gap-4">
-                                    <img
-                                      src={
-                                        expert.image_url ||
-                                        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80"
-                                      }
-                                      alt={expert.name}
-                                      className="w-20 h-20 rounded-full object-cover border-4 border-white shadow"
-                                    />
-                                    <div>
-                                      <h5 className="text-lg font-bold text-gray-900">
-                                        {expert.name}
-                                      </h5>
-                                      {expert.company && (
-                                        <p className="text-amber-700 font-medium text-sm">
-                                          {expert.company}
-                                        </p>
-                                      )}
-                                      <p className="text-gray-600 text-sm mt-2 line-clamp-3">
-                                        {expert.description}
-                                      </p>
-                                      <Link to={`/expert?id=${expert.id}`}>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="mt-3"
-                                        >
-                                          View Full Profile
-                                        </Button>
-                                      </Link>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              <div className="mt-6 text-center">
-                                <Button
-                                  variant="outline"
-                                  onClick={() => toggleArticle(article.id)}
-                                >
-                                  <ChevronUp className="w-4 h-4 mr-2" />
-                                  Collapse Article
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
-
-        {/* Issue Navigation */}
-        <section className="py-10">
-          <div className="flex items-center justify-between">
-            {adjacentIssues.prev ? (
-              <Link to={`/magazine/issue/${adjacentIssues.prev.slug}`}>
-                <Button variant="outline" className="gap-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  <span className="hidden sm:inline">
-                    {getIssueLabel(adjacentIssues.prev.month, adjacentIssues.prev.year)}
-                  </span>
-                  <span className="sm:hidden">Previous</span>
-                </Button>
-              </Link>
-            ) : (
-              <div />
-            )}
-            <Link to="/magazine">
-              <Button variant="ghost" className="text-gray-500">
-                All Issues
-              </Button>
-            </Link>
-            {adjacentIssues.next ? (
-              <Link to={`/magazine/issue/${adjacentIssues.next.slug}`}>
-                <Button variant="outline" className="gap-2">
-                  <span className="hidden sm:inline">
-                    {getIssueLabel(adjacentIssues.next.month, adjacentIssues.next.year)}
-                  </span>
-                  <span className="sm:hidden">Next</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
-            ) : (
-              <div />
-            )}
-          </div>
-        </section>
       </div>
     </div>
   );
