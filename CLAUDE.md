@@ -1,5 +1,9 @@
 # CLAUDE.md — IsraelProperty360
 
+
+## Always Do First
+- **Invoke the `frontend-design` skill** before writing any frontend code, every session, no exceptions.
+
 ## Project Overview
 Real estate platform for Israel properties. React 18 SPA migrated from Base44 (no-code) to a self-hosted stack.
 

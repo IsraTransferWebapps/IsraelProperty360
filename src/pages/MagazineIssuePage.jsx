@@ -25,7 +25,7 @@ import {
 
 // Individual page component - must use forwardRef for react-pageflip
 const Page = React.forwardRef(({ children, className = "" }, ref) => (
-  <div ref={ref} className={`magazine-page bg-white shadow-lg ${className}`}>
+  <div ref={ref} className={`magazine-page ${className}`}>
     {children}
   </div>
 ));
@@ -151,7 +151,6 @@ export default function MagazineIssuePage() {
 
   const goNext = () => flipBookRef.current?.pageFlip()?.flipNext();
   const goPrev = () => flipBookRef.current?.pageFlip()?.flipPrev();
-  const goToPage = (n) => flipBookRef.current?.pageFlip()?.flip(n);
 
   const toggleFullscreen = () => setIsFullscreen(!isFullscreen);
 
@@ -173,33 +172,45 @@ export default function MagazineIssuePage() {
     // --- COVER PAGE ---
     pages.push(
       <Page key="cover">
-        <div className="h-full flex flex-col relative overflow-hidden">
+        <div className="h-full flex flex-col relative overflow-hidden bg-[#0c1f3f]">
           <img
             src={issue.cover_image_url || "https://images.unsplash.com/photo-1544829099-b9a0c07fad1a?auto=format&fit=crop&w=800&q=80"}
             alt={issue.title}
             className="absolute inset-0 w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10" />
-          <div className="relative z-10 mt-auto p-8">
-            <div className="inline-block bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded mb-4 uppercase tracking-widest">
-              {getIssueLabel(issue.month, issue.year)}
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white mb-3 leading-tight">
-              {issue.title}
-            </h1>
-            <p className="text-white/70 text-sm leading-relaxed">
-              {issue.description}
-            </p>
-            <div className="mt-6 flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center">
-                <BookOpen className="w-4 h-4 text-white" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0c1f3f] via-[#0c1f3f]/50 to-[#0c1f3f]/10" />
+
+          {/* Top branding bar */}
+          <div className="relative z-10 pt-6 px-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 bg-[#c8a55c] rounded-md flex items-center justify-center">
+                  <BookOpen className="w-3.5 h-3.5 text-[#0c1f3f]" />
+                </div>
+                <div>
+                  <p className="text-white text-[11px] font-bold tracking-tight leading-none" style={{ fontFamily: "'Playfair Display', serif" }}>Israel Property</p>
+                  <p className="text-[#c8a55c] text-[7px] tracking-[0.2em] uppercase" style={{ fontFamily: "'DM Sans', sans-serif" }}>Magazine</p>
+                </div>
               </div>
-              <div>
-                <p className="text-white text-xs font-bold">Israel Property</p>
-                <p className="text-amber-400 text-[10px] tracking-[0.15em] uppercase">Magazine</p>
-              </div>
+              <span className="text-white/60 text-[10px] tracking-wider uppercase" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                {getIssueLabel(issue.month, issue.year)}
+              </span>
             </div>
           </div>
+
+          {/* Cover content */}
+          <div className="relative z-10 mt-auto p-8 pb-10">
+            <div className="h-[2px] w-16 bg-[#c8a55c] mb-5" />
+            <h1 className="text-[22px] md:text-[26px] font-bold text-white mb-3 leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {issue.title}
+            </h1>
+            <p className="text-white/60 text-[13px] leading-relaxed max-w-[90%]" style={{ fontFamily: "'Source Serif 4', serif" }}>
+              {issue.description}
+            </p>
+          </div>
+
+          {/* Bottom gold accent line */}
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#c8a55c] via-[#e0c878] to-[#c8a55c]" />
         </div>
       </Page>
     );
@@ -207,36 +218,51 @@ export default function MagazineIssuePage() {
     // --- TABLE OF CONTENTS PAGE ---
     pages.push(
       <Page key="toc">
-        <div className="h-full flex flex-col p-8">
-          <div className="border-b-2 border-amber-500 pb-4 mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">In This Issue</h2>
-            <p className="text-sm text-gray-500 mt-1">
+        <div className="h-full flex flex-col p-8 bg-[#faf9f6]">
+          {/* Header with decorative line */}
+          <div className="mb-6">
+            <p className="text-[10px] tracking-[0.2em] uppercase text-[#c8a55c] mb-2" style={{ fontFamily: "'DM Sans', sans-serif" }}>
               {getIssueLabel(issue.month, issue.year)}
             </p>
+            <h2 className="text-[22px] font-bold text-[#0c1f3f]" style={{ fontFamily: "'Playfair Display', serif" }}>
+              In This Issue
+            </h2>
+            <div className="flex items-center gap-2 mt-3">
+              <div className="h-[2px] w-10 bg-[#c8a55c]" />
+              <div className="h-[2px] flex-1 bg-stone-200" />
+            </div>
           </div>
-          <div className="flex-1 space-y-4">
+
+          <div className="flex-1 space-y-0">
             {articles.map((article, idx) => {
               const catInfo = MAGAZINE_CATEGORIES[article.category] || MAGAZINE_CATEGORIES.editorial;
               const CatIcon = catInfo.icon;
               return (
-                <div key={article.id} className="flex items-start gap-3 group">
-                  <div className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center ${catInfo.color}`}>
-                    <CatIcon className="w-4 h-4" />
+                <div key={article.id} className="flex items-start gap-3 py-3.5 border-b border-stone-100 last:border-0">
+                  <div className="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center bg-[#0c1f3f]/[0.05]">
+                    <CatIcon className="w-3.5 h-3.5 text-[#0c1f3f]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 text-sm leading-tight">
+                    <p className="font-semibold text-[#0c1f3f] text-[13px] leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
                       {article.title}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-[10px] text-stone-400 mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                       {catInfo.label} — {article.author_name || "Editorial Team"}
                     </p>
                   </div>
+                  <span className="text-[10px] text-[#c8a55c] font-semibold mt-0.5 flex-shrink-0" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
                 </div>
               );
             })}
           </div>
-          <div className="mt-auto pt-4 border-t border-gray-200 text-center">
-            <p className="text-xs text-gray-400">israelproperty360.com/magazine</p>
+
+          <div className="mt-auto pt-4">
+            <div className="h-[1px] bg-stone-200 mb-3" />
+            <p className="text-[9px] text-stone-300 text-center tracking-wider uppercase" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+              israelproperty360.com/magazine
+            </p>
           </div>
         </div>
       </Page>
@@ -252,26 +278,31 @@ export default function MagazineIssuePage() {
       // Article title page (with image)
       pages.push(
         <Page key={`art-title-${article.id}`}>
-          <div className="h-full flex flex-col">
-            {/* Article image - top half */}
-            <div className="h-2/5 relative overflow-hidden flex-shrink-0">
+          <div className="h-full flex flex-col bg-white">
+            {/* Article image - top section */}
+            <div className="h-[42%] relative overflow-hidden flex-shrink-0">
               <img
                 src={article.image_url || "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80"}
                 alt={article.title}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
-            </div>
-            {/* Article header - bottom half */}
-            <div className="flex-1 px-8 pb-6 flex flex-col">
-              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${catInfo.color} w-fit mb-3`}>
-                <CatIcon className="w-3 h-3" />
-                {catInfo.label}
+              <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
+              {/* Category pill */}
+              <div className="absolute top-4 left-6">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-semibold ${catInfo.color} backdrop-blur-sm`} style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  <CatIcon className="w-3 h-3" />
+                  {catInfo.label}
+                </span>
               </div>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 leading-tight">
+            </div>
+
+            {/* Article header */}
+            <div className="flex-1 px-8 pb-6 flex flex-col -mt-2">
+              <div className="h-[2px] w-10 bg-[#c8a55c] mb-4" />
+              <h2 className="text-[20px] md:text-[22px] font-bold text-[#0c1f3f] mb-3 leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
                 {article.title}
               </h2>
-              <p className="text-gray-600 text-sm leading-relaxed mb-4 line-clamp-3">
+              <p className="text-stone-500 text-[13px] leading-relaxed mb-4 line-clamp-3" style={{ fontFamily: "'Source Serif 4', serif" }}>
                 {article.excerpt}
               </p>
               <div className="mt-auto flex items-center gap-3">
@@ -279,19 +310,19 @@ export default function MagazineIssuePage() {
                   <img
                     src={expert.image_url}
                     alt={article.author_name}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-amber-200"
+                    className="w-10 h-10 rounded-full object-cover ring-2 ring-[#c8a55c]/20 ring-offset-2"
                   />
                 ) : (
-                  <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-white" />
+                  <div className="w-10 h-10 bg-[#0c1f3f] rounded-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-[#c8a55c]" />
                   </div>
                 )}
                 <div>
-                  <p className="font-semibold text-gray-900 text-sm">
+                  <p className="font-semibold text-[#0c1f3f] text-[13px]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                     {article.author_name || "Editorial Team"}
                   </p>
                   {expert?.company && (
-                    <p className="text-xs text-gray-500">{expert.company}</p>
+                    <p className="text-[11px] text-stone-400" style={{ fontFamily: "'DM Sans', sans-serif" }}>{expert.company}</p>
                   )}
                 </div>
               </div>
@@ -304,79 +335,32 @@ export default function MagazineIssuePage() {
       contentPages.forEach((pageContent, pageIdx) => {
         pages.push(
           <Page key={`art-content-${article.id}-${pageIdx}`}>
-            <div className="h-full flex flex-col p-8">
+            <div className="h-full flex flex-col p-8 bg-[#faf9f6]">
               {/* Page header */}
-              <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-100 flex-shrink-0">
+              <div className="flex items-center justify-between pb-3 mb-5 border-b border-stone-200 flex-shrink-0">
                 <div className="flex items-center gap-2">
-                  <CatIcon className="w-3.5 h-3.5 text-amber-600" />
-                  <span className="text-xs font-medium text-amber-700">{catInfo.label}</span>
+                  <CatIcon className="w-3 h-3 text-[#c8a55c]" />
+                  <span className="text-[10px] font-medium text-[#0c1f3f] tracking-wider uppercase" style={{ fontFamily: "'DM Sans', sans-serif" }}>{catInfo.label}</span>
                 </div>
-                <span className="text-xs text-gray-400">
+                <span className="text-[10px] text-stone-300 italic" style={{ fontFamily: "'Source Serif 4', serif" }}>
                   {article.author_name}
                 </span>
               </div>
               {/* Content */}
               <div className="flex-1 overflow-hidden">
-                <style>{`
-                  .flip-content {
-                    color: #374151;
-                    font-size: 0.85rem;
-                    line-height: 1.7;
-                  }
-                  .flip-content p {
-                    margin-bottom: 0.75rem;
-                  }
-                  .flip-content h2 {
-                    font-size: 1.1rem;
-                    font-weight: 700;
-                    color: #111827;
-                    margin-top: 1rem;
-                    margin-bottom: 0.5rem;
-                    border-left: 3px solid #f59e0b;
-                    padding-left: 0.75rem;
-                  }
-                  .flip-content h3 {
-                    font-size: 0.95rem;
-                    font-weight: 700;
-                    color: #92400e;
-                    margin-top: 0.75rem;
-                    margin-bottom: 0.5rem;
-                  }
-                  .flip-content ul, .flip-content ol {
-                    padding-left: 1.25rem;
-                    margin-bottom: 0.75rem;
-                  }
-                  .flip-content li {
-                    margin-bottom: 0.25rem;
-                    line-height: 1.6;
-                  }
-                  .flip-content ul li { list-style-type: disc; }
-                  .flip-content ol li { list-style-type: decimal; }
-                  .flip-content strong { color: #111827; }
-                  .flip-content blockquote {
-                    border-left: 3px solid #f59e0b;
-                    background: #fffbeb;
-                    padding: 0.75rem 1rem;
-                    margin: 0.75rem 0;
-                    font-style: italic;
-                    color: #92400e;
-                    font-size: 0.85rem;
-                    border-radius: 0.25rem;
-                  }
-                  .flip-content a {
-                    color: #d97706;
-                    text-decoration: underline;
-                  }
-                `}</style>
-                <div className="flip-content">
+                <div className="flip-content-v2">
                   <ReactMarkdown>{pageContent}</ReactMarkdown>
                 </div>
               </div>
               {/* Page footer */}
-              <div className="pt-3 mt-auto border-t border-gray-100 flex-shrink-0">
-                <p className="text-[10px] text-gray-400 text-center">
-                  Israel Property Magazine — {getIssueLabel(issue.month, issue.year)}
-                </p>
+              <div className="pt-3 mt-auto flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <div className="h-[1px] flex-1 bg-stone-200" />
+                  <p className="text-[8px] text-stone-300 px-3 tracking-wider uppercase" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    Israel Property Magazine — {getIssueLabel(issue.month, issue.year)}
+                  </p>
+                  <div className="h-[1px] flex-1 bg-stone-200" />
+                </div>
               </div>
             </div>
           </Page>
@@ -387,24 +371,39 @@ export default function MagazineIssuePage() {
     // --- BACK COVER ---
     pages.push(
       <Page key="back-cover">
-        <div className="h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center mb-6">
-            <BookOpen className="w-8 h-8 text-white" />
+        <div className="h-full flex flex-col items-center justify-center p-10 bg-[#0c1f3f] text-white text-center relative overflow-hidden">
+          {/* Decorative background */}
+          <div className="absolute inset-0 opacity-[0.03]" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c8a55c' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }} />
+
+          <div className="relative z-10">
+            <div className="w-14 h-14 bg-[#c8a55c] rounded-xl flex items-center justify-center mb-6 mx-auto">
+              <BookOpen className="w-7 h-7 text-[#0c1f3f]" />
+            </div>
+            <h2 className="text-[24px] font-bold mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>Israel Property</h2>
+            <p className="text-[#c8a55c] text-[10px] tracking-[0.25em] uppercase mb-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>Magazine</p>
+
+            <div className="h-[1px] w-16 bg-white/10 mx-auto mb-8" />
+
+            <p className="text-[#8b9bb8] text-[14px] mb-8 max-w-[260px] leading-relaxed mx-auto" style={{ fontFamily: "'Source Serif 4', serif" }}>
+              Thank you for reading. Join us next month for more expert insights
+              on purchasing property in Israel.
+            </p>
+
+            <div className="space-y-1.5">
+              <p className="text-[#5a6e8a] text-[11px]" style={{ fontFamily: "'DM Sans', sans-serif" }}>Subscribe for free at</p>
+              <p className="text-[#c8a55c] text-[13px] font-semibold tracking-wide" style={{ fontFamily: "'DM Sans', sans-serif" }}>israelproperty360.com/magazine</p>
+            </div>
+
+            <div className="mt-10 pt-6 border-t border-white/[0.06] w-48 mx-auto">
+              <p className="text-[#5a6e8a] text-[10px]" style={{ fontFamily: "'DM Sans', sans-serif" }}>Brought to you by IsraTransfer</p>
+              <p className="text-[#3d5275] text-[9px] mt-0.5" style={{ fontFamily: "'DM Sans', sans-serif" }}>isratransfer.com</p>
+            </div>
           </div>
-          <h2 className="text-2xl font-bold mb-2">Israel Property</h2>
-          <p className="text-amber-400 text-sm tracking-[0.2em] uppercase mb-8">Magazine</p>
-          <p className="text-gray-400 text-sm mb-6 max-w-xs leading-relaxed">
-            Thank you for reading. Join us next month for more expert insights
-            on purchasing property in Israel.
-          </p>
-          <div className="space-y-2">
-            <p className="text-gray-500 text-xs">Subscribe for free at</p>
-            <p className="text-amber-400 text-sm font-semibold">israelproperty360.com/magazine</p>
-          </div>
-          <div className="mt-10 pt-6 border-t border-gray-700 w-full">
-            <p className="text-gray-500 text-xs">Brought to you by IsraTransfer</p>
-            <p className="text-gray-600 text-[10px] mt-1">isratransfer.com</p>
-          </div>
+
+          {/* Bottom gold accent */}
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#c8a55c] via-[#e0c878] to-[#c8a55c]" />
         </div>
       </Page>
     );
@@ -414,10 +413,10 @@ export default function MagazineIssuePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-[#faf9f6]">
         <div className="text-center">
-          <Skeleton className="w-[400px] h-[560px] mx-auto rounded-lg" />
-          <Skeleton className="h-6 w-48 mx-auto mt-4" />
+          <Skeleton className="w-[400px] h-[560px] mx-auto rounded-xl" />
+          <Skeleton className="h-5 w-48 mx-auto mt-6" />
         </div>
       </div>
     );
@@ -425,15 +424,15 @@ export default function MagazineIssuePage() {
 
   if (!issue) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="text-center p-8 max-w-md">
+      <div className="min-h-screen flex items-center justify-center bg-[#faf9f6]">
+        <Card className="text-center p-10 max-w-md border-stone-100 shadow-xl">
           <CardContent>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Issue Not Found</h2>
-            <p className="text-gray-600 mb-6">
+            <h2 className="mag-display text-2xl font-bold text-[#0c1f3f] mb-4">Issue Not Found</h2>
+            <p className="mag-serif text-stone-400 mb-6">
               The magazine issue you're looking for doesn't exist or hasn't been published yet.
             </p>
             <Link to="/magazine">
-              <Button>Browse All Issues</Button>
+              <Button className="mag-sans bg-[#0c1f3f] hover:bg-[#162d52] text-white">Browse All Issues</Button>
             </Link>
           </CardContent>
         </Card>
@@ -446,61 +445,121 @@ export default function MagazineIssuePage() {
   return (
     <div
       ref={containerRef}
-      className={`min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 ${
+      className={`min-h-screen ${
         isFullscreen
-          ? "fixed inset-0 z-50 bg-gray-900 flex flex-col"
-          : ""
+          ? "fixed inset-0 z-50 bg-[#0a0e1a] flex flex-col"
+          : "bg-gradient-to-b from-[#f0ede6] via-[#e8e4db] to-[#f0ede6]"
       }`}
     >
       <style>{`
         .magazine-page {
-          background: white;
           overflow: hidden;
         }
         .stf__parent {
           margin: 0 auto;
         }
         .stf__wrapper {
-          box-shadow: 0 25px 60px -12px rgba(0,0,0,0.25), 0 10px 30px -10px rgba(0,0,0,0.15);
+          box-shadow: 0 30px 80px -20px rgba(12,31,63,0.35), 0 10px 30px -10px rgba(12,31,63,0.2);
           border-radius: 4px;
+        }
+
+        /* Refined article typography */
+        .flip-content-v2 {
+          color: #374151;
+          font-size: 0.82rem;
+          line-height: 1.75;
+          font-family: 'Source Serif 4', Georgia, serif;
+        }
+        .flip-content-v2 p {
+          margin-bottom: 0.7rem;
+        }
+        .flip-content-v2 h2 {
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: #0c1f3f;
+          margin-top: 1rem;
+          margin-bottom: 0.5rem;
+          padding-left: 0.75rem;
+          border-left: 2px solid #c8a55c;
+          font-family: 'Playfair Display', serif;
+        }
+        .flip-content-v2 h3 {
+          font-size: 0.9rem;
+          font-weight: 700;
+          color: #0c1f3f;
+          margin-top: 0.75rem;
+          margin-bottom: 0.5rem;
+          font-family: 'DM Sans', sans-serif;
+          letter-spacing: 0.02em;
+        }
+        .flip-content-v2 ul, .flip-content-v2 ol {
+          padding-left: 1.25rem;
+          margin-bottom: 0.75rem;
+        }
+        .flip-content-v2 li {
+          margin-bottom: 0.25rem;
+          line-height: 1.65;
+        }
+        .flip-content-v2 ul li { list-style-type: disc; }
+        .flip-content-v2 ol li { list-style-type: decimal; }
+        .flip-content-v2 strong { color: #0c1f3f; }
+        .flip-content-v2 blockquote {
+          border-left: 2px solid #c8a55c;
+          background: linear-gradient(135deg, #faf9f6, #f5f0e8);
+          padding: 0.75rem 1rem;
+          margin: 0.75rem 0;
+          font-style: italic;
+          color: #6b5c3e;
+          font-size: 0.85rem;
+          border-radius: 0.25rem;
+        }
+        .flip-content-v2 a {
+          color: #c8a55c;
+          text-decoration: underline;
+          text-decoration-color: #c8a55c40;
+          text-underline-offset: 2px;
         }
       `}</style>
 
       {/* Top bar */}
-      <div className={`${isFullscreen ? "bg-gray-900 border-b border-gray-800" : ""}`}>
+      <div className={`${isFullscreen ? "bg-[#0a0e1a] border-b border-white/[0.06]" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link
             to="/magazine"
-            className={`inline-flex items-center gap-2 text-sm ${
+            className={`mag-sans inline-flex items-center gap-2 text-[13px] tracking-wide uppercase ${
               isFullscreen
-                ? "text-gray-400 hover:text-white"
-                : "text-gray-500 hover:text-gray-800"
+                ? "text-[#5a6e8a] hover:text-white"
+                : "text-stone-400 hover:text-[#0c1f3f]"
             } transition-colors`}
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5" />
             All Issues
           </Link>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
+          <div className="flex items-center gap-1">
+            <button
               onClick={handleShare}
-              className={isFullscreen ? "text-gray-400 hover:text-white" : ""}
+              className={`p-2.5 rounded-lg transition-colors ${
+                isFullscreen
+                  ? "text-[#5a6e8a] hover:text-white hover:bg-white/5"
+                  : "text-stone-400 hover:text-[#0c1f3f] hover:bg-stone-100"
+              }`}
             >
               <Share2 className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
+            </button>
+            <button
               onClick={toggleFullscreen}
-              className={isFullscreen ? "text-gray-400 hover:text-white" : ""}
+              className={`p-2.5 rounded-lg transition-colors ${
+                isFullscreen
+                  ? "text-[#5a6e8a] hover:text-white hover:bg-white/5"
+                  : "text-stone-400 hover:text-[#0c1f3f] hover:bg-stone-100"
+              }`}
             >
               {isFullscreen ? (
                 <Minimize2 className="w-4 h-4" />
               ) : (
                 <Maximize2 className="w-4 h-4" />
               )}
-            </Button>
+            </button>
           </div>
         </div>
       </div>
@@ -508,17 +567,17 @@ export default function MagazineIssuePage() {
       {/* Flipbook */}
       <div
         className={`flex-1 flex items-center justify-center ${
-          isFullscreen ? "py-4" : "py-8 md:py-12"
+          isFullscreen ? "py-4" : "py-6 md:py-10"
         }`}
       >
         <div className="relative">
           {/* Previous button */}
           <button
             onClick={goPrev}
-            className={`absolute left-[-50px] top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all hidden md:flex ${
+            className={`absolute left-[-56px] top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full flex items-center justify-center transition-all hidden md:flex ${
               isFullscreen
-                ? "bg-gray-800 hover:bg-gray-700 text-white"
-                : "bg-white shadow-lg hover:shadow-xl text-gray-700"
+                ? "bg-white/5 hover:bg-white/10 text-white/60 hover:text-white border border-white/10"
+                : "bg-white shadow-lg shadow-stone-200/50 hover:shadow-xl text-stone-500 hover:text-[#0c1f3f] border border-stone-100"
             }`}
           >
             <ChevronLeft className="w-5 h-5" />
@@ -555,10 +614,10 @@ export default function MagazineIssuePage() {
           {/* Next button */}
           <button
             onClick={goNext}
-            className={`absolute right-[-50px] top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all hidden md:flex ${
+            className={`absolute right-[-56px] top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full flex items-center justify-center transition-all hidden md:flex ${
               isFullscreen
-                ? "bg-gray-800 hover:bg-gray-700 text-white"
-                : "bg-white shadow-lg hover:shadow-xl text-gray-700"
+                ? "bg-white/5 hover:bg-white/10 text-white/60 hover:text-white border border-white/10"
+                : "bg-white shadow-lg shadow-stone-200/50 hover:shadow-xl text-stone-500 hover:text-[#0c1f3f] border border-stone-100"
             }`}
           >
             <ChevronRight className="w-5 h-5" />
@@ -567,28 +626,28 @@ export default function MagazineIssuePage() {
       </div>
 
       {/* Bottom controls */}
-      <div className={`${isFullscreen ? "bg-gray-900 border-t border-gray-800" : ""}`}>
+      <div className={`${isFullscreen ? "bg-[#0a0e1a] border-t border-white/[0.06]" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 py-4">
           {/* Mobile prev/next buttons */}
-          <div className="flex items-center justify-center gap-4 md:hidden mb-3">
-            <Button variant="outline" size="sm" onClick={goPrev}>
+          <div className="flex items-center justify-center gap-3 md:hidden mb-3">
+            <Button variant="outline" size="sm" onClick={goPrev} className="mag-sans border-stone-200 text-stone-500">
               <ChevronLeft className="w-4 h-4 mr-1" />
               Prev
             </Button>
-            <Button variant="outline" size="sm" onClick={goNext}>
+            <Button variant="outline" size="sm" onClick={goNext} className="mag-sans border-stone-200 text-stone-500">
               Next
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
+
           {/* Page indicator */}
           <div className="text-center">
-            <p className={`text-sm ${isFullscreen ? "text-gray-400" : "text-gray-500"}`}>
+            <p className={`mag-sans text-[13px] ${isFullscreen ? "text-[#5a6e8a]" : "text-stone-400"}`}>
               {allPages.length > 0
                 ? `Page ${currentPage + 1} of ${allPages.length}`
                 : ""}
             </p>
-            {/* Hint text */}
-            <p className={`text-xs mt-1 ${isFullscreen ? "text-gray-600" : "text-gray-400"}`}>
+            <p className={`mag-sans text-[11px] mt-1 ${isFullscreen ? "text-[#3d5275]" : "text-stone-300"}`}>
               {window.innerWidth >= 768
                 ? "Click the page edges or use arrows to turn pages"
                 : "Swipe or tap to turn pages"}
